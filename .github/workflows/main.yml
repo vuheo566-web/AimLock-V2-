@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,9 +21,100 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - run: gradle assembleDebug
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/java/com/aimlock/freeui
 
-      - uses: actions/upload-artifact@v4
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          rootProject.name='AimLock-V2'
+          include ':app'
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+            id 'com.android.application' version '8.5.2' apply false
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+            id 'com.android.application'
+          }
+
+          android {
+            namespace 'com.aimlock.freeui'
+            compileSdk 35
+
+            defaultConfig {
+              applicationId 'com.aimlock.freeui'
+              minSdk 23
+              targetSdk 35
+              versionCode 1
+              versionName '1.0'
+            }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application
+              android:theme="@android:style/Theme.Material.NoActionBar"
+              android:label="AIMLOCK V2">
+              <activity
+                android:name=".MainActivity"
+                android:screenOrientation="portrait"
+                android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/aimlock/freeui/MainActivity.java <<'EOF'
+          package com.aimlock.freeui;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.graphics.Color;
+          import android.widget.TextView;
+
+          public class MainActivity extends Activity {
+            @Override
+            protected void onCreate(Bundle b) {
+              super.onCreate(b);
+              TextView v = new TextView(this);
+              v.setText("AIMLOCK V2 FREE");
+              v.setTextColor(Color.WHITE);
+              v.setTextSize(28);
+              v.setGravity(17);
+              v.setBackgroundColor(Color.BLACK);
+              setContentView(v);
+            }
+          }
+          EOF
+
+      - name: Build APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: AIMLOCK-APK
+          name: AIMLOCK-V2-APK
           path: app/build/outputs/apk/debug/app-debug.apk
